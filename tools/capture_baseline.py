@@ -7,9 +7,11 @@ No game process is launched. Game files are opened by the inspector for reading.
 import argparse
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
+import tempfile
 
 
 MODULES = (
@@ -72,6 +74,23 @@ def capture(root, tool):
     }
 
 
+def write_report(output, encoded):
+    """Publish a complete report without truncating an existing hard-link target."""
+    output.parent.mkdir(parents=True, exist_ok=True)
+    stage = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=output.parent,
+            prefix=".cs2-baseline-", delete=False,
+        ) as stream:
+            stage = Path(stream.name)
+            stream.write(encoded)
+        os.replace(stage, output)
+    finally:
+        if stage is not None:
+            stage.unlink(missing_ok=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, required=True,
@@ -89,12 +108,18 @@ def main():
     if not tool.is_file():
         parser.error("Native inspector missing; run make first")
     try:
+        output = args.output.expanduser().absolute() if args.output else None
+        if output is not None:
+            destination = output.resolve()
+            if destination == root or root in destination.parents:
+                parser.error("Save the report outside the game installation")
+            if destination == tool:
+                parser.error("The report output cannot replace the native inspector")
         report = capture(root, tool)
         encoded = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
-        if args.output:
-            args.output.parent.mkdir(parents=True, exist_ok=True)
-            args.output.write_text(encoded)
-            print("Saved local inventory to " + str(args.output))
+        if output is not None:
+            write_report(output, encoded)
+            print("Saved local inventory to " + str(output))
         else:
             print(encoded, end="")
     except (OSError, ValueError, subprocess.SubprocessError) as error:
