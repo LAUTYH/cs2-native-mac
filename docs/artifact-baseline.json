@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-10-23T14:52:43.969185+00:00",
+  "steam_app_id": 730,
+  "steam_manifest_build_id": "24957633",
+  "scope": "selected-bootstrap-modules-and-vpk-directories",
+  "game_execution_observed": false,
+  "limitations": [
+    "The Steam manifest describes the installation; each inspected file has its own identity.",
+    "This inventories selected files, not the complete game or every dependency.",
+    "VPK directory inspection does not validate all payload chunks or render any resource.",
+    "Static file metadata does not demonstrate runtime or Steam service compatibility.",
+    "PE DLL names cover normal imports only; delay imports and runtime-loaded modules are unknown.",
+    "VPK header/tree digests do not identify all asset payload bytes or verify archive signatures."
+  ],
+  "records": [
+    {
+      "relative_path": "game/bin/win64/cs2.exe",
+      "present": true,
+      "format": "PE32+",
+      "target_platform": "windows",
+      "target_architecture": "x86_64",
+      "file_size": 2967704,
+      "sha256": "427777df3271a7e423e7b9accdb7b40bda47d6683b6ac1d75d129f26e5103dbf",
+      "identity_scope": "complete-input-file",
+      "imported_dlls": [
+        "USER32.dll",
+        "KERNEL32.dll"
+      ]
+    },
+    {
+      "relative_path": "game/bin/win64/engine2.dll",
+      "present": true,
+      "format": "PE32+",
+      "target_platform": "windows",
+      "target_architecture": "x86_64",
+      "file_size": 6768280,
+      "sha256": "eba2f4251cbb6622358db38551130dfddd688622f792dbde1d91907d5478eb7f",
+      "identity_scope": "complete-input-file",
+      "imported_dlls": [
+        "USER32.dll",
+        "ADVAPI32.dll",
+        "GDI32.dll",
+        "WS2_32.dll",
+        "steam_api64.dll",
+        "steamnetworkingsockets.dll",
+        "tier0.dll",
+        "KERNEL32.dll"
+      ]
+    },
+    {
+      "relative_path": "game/bin/win64/rendersystemvulkan.dll",
+      "present": true,
+      "format": "PE32+",
+      "target_platform": "windows",
+      "target_architecture": "x86_64",
+      "file_size": 6148248,
+      "sha256": "8c26593cc28a8cf03fb5e2ebd6cb19a58f54765d69ce0ad7d0802d24b1c80a12",
+      "identity_scope": "complete-input-file",
+      "imported_dlls": [
+        "USER32.dll",
+        "ADVAPI32.dll",
+        "tier0.dll",
+        "KERNEL32.dll"
+      ]
+    },
+    {
+      "relative_path": "game/bin/win64/steam_api64.dll",
+      "present": true,
+      "format": "PE32+",
+      "target_platform": "windows",
+      "target_architecture": "x86_64",
+      "file_size": 317080,
+      "sha256": "2a785780af426dfc5c809087d100db8d4ff41a1e1a2956ad5473689e77e3c863",
+      "identity_scope": "complete-input-file",
+      "imported_dlls": [
+        "KERNEL32.dll",
+        "ADVAPI32.dll",
+        "SHELL32.dll"
+      ]
+    },
+    {
+      "relative_path": "game/csgo/bin/win64/client.dll",
+      "present": true,
+      "format": "PE32+",
+      "target_platform": "windows",
+      "target_architecture": "x86_64",
+      "file_size": 37560472,
+      "sha256": "84bcae9db379bed5acb3d81228abef86fbd61b6cdb2b3accdc5dd0f32e8f89f9",
+      "identity_scope": "complete-input-file",
+      "imported_dlls": [
+        "USER32.dll",
+        "ADVAPI32.dll",
+        "embree3.dll",
+        "steam_api64.dll",
+        "tier0.dll",
+        "v8.dll",
+        "video64.dll",
+        "KERNEL32.dll",
+        "WS2_32.dll"
+      ]
+    },
+    {
+      "relative_path": "game/csgo/pak01_dir.vpk",
+      "present": true,
+      "format": "VPK",
+      "file_size": 7584553,
+      "identity_scope": "header-and-tree-only",
+      "vpk_version": 2,
+      "tree_size": 6185271,
+      "bytes_read": 6185299,
+      "sha256_header_and_tree": "ad856e9da4852d8c260498b9b78fb1b7a3148a87bb424042ec50fa730623749e",
+      "total_entries": 135686,
+      "file_data_section_size": 0,
+      "uninspected_trailing_bytes": 1062,
+      "referenced_archive_index_count": 494
+    },
+    {
+      "relative_path": "game/csgo/shaders_vulkan_dir.vpk",
+      "present": true,
+      "format": "VPK",
+      "file_size": 21213,
+      "identity_scope": "header-and-tree-only",
+      "vpk_version": 2,
+      "tree_size": 14147,
+      "bytes_read": 14175,
+      "sha256_header_and_tree": "c9298aa7c04979c844c1e6b2b69b88462961b1a0694ebd128eefb87c9cd581fd",
+      "total_entries": 301,
+      "file_data_section_size": 0,
+      "uninspected_trailing_bytes": 1062,
+      "referenced_archive_index_count": 4
+    },
+    {
+      "relative_path": "game/core/pak01_dir.vpk",
+      "present": true,
+      "format": "VPK",
+      "file_size": 82315,
+      "identity_scope": "header-and-tree-only",
+      "vpk_version": 2,
+      "tree_size": 63517,
+      "bytes_read": 63545,
+      "sha256_header_and_tree": "82744751fe18a3f2e329ecfc2c61409ba5acd068aa45ebd75340272aae55d4b9",
+      "total_entries": 1549,
+      "file_data_section_size": 0,
+      "uninspected_trailing_bytes": 1062,
+      "referenced_archive_index_count": 7
+    }
+  ]
+}
