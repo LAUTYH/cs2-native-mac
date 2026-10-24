@@ -43,6 +43,11 @@ class LauncherTests(unittest.TestCase):
         manifest.write_text('"AppState" { "appid" "730" "buildid" "123" }')
         return source, exe, manifest
 
+    def prepare_steam(self):
+        steam = self.root / "Steam/drive_c/Program Files (x86)/Steam/steam.exe"
+        steam.parent.mkdir(parents=True)
+        steam.write_bytes(b"synthetic Steam installation")
+
     def test_dry_run_launches_steam_not_the_game_and_creates_nothing(self):
         for cmd in ("steam", "play", "stop"):
             plan = json.loads(self.invoke(cmd, "--dry-run").stdout)
@@ -63,6 +68,7 @@ class LauncherTests(unittest.TestCase):
         self.configure(backend="crossover", bottle=bottle, crossOverApp="/Applications/An App.app")
         plan = json.loads(self.invoke("play", "--dry-run").stdout)
         self.assertEqual(plan["arguments"][:4], ["--bottle", bottle, "--no-wait", "--cx-app"])
+        self.assertEqual(plan["arguments"][4], r"C:\Program Files (x86)\Steam\steam.exe")
         self.assertEqual(plan["arguments"][-2:], ["-applaunch", "730"])
         self.assertNotIn("WINEPREFIX", plan["environment"])
 
@@ -88,6 +94,7 @@ class LauncherTests(unittest.TestCase):
 
     def test_import_is_independent_and_preserves_the_original(self):
         source, exe, manifest = self.source_game()
+        self.prepare_steam()
         original = exe.read_bytes()
         self.invoke("import-game", str(source))
         copied = self.root / "Steam/drive_c/Program Files (x86)/Steam/steamapps/common" / source.name
@@ -99,6 +106,7 @@ class LauncherTests(unittest.TestCase):
 
     def test_import_does_not_overwrite_an_existing_installation(self):
         source, _, _ = self.source_game()
+        self.prepare_steam()
         self.invoke("import-game", str(source))
         self.assertIn("Conservé ambas", self.invoke("import-game", str(source), valid=False).stderr)
 
@@ -120,6 +128,11 @@ class LauncherTests(unittest.TestCase):
         linked = self.base / "linked game"
         linked.symlink_to(source, target_is_directory=True)
         self.assertIn("carpeta real", self.invoke("import-game", str(linked), valid=False).stderr)
+        self.assertFalse(self.root.exists())
+
+    def test_import_requires_steam_first_to_keep_installer_destination_empty(self):
+        source, _, _ = self.source_game()
+        self.assertIn("carpeta vacía", self.invoke("import-game", str(source), valid=False).stderr)
         self.assertFalse(self.root.exists())
 
 

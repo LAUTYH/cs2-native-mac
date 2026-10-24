@@ -9,8 +9,8 @@ x86_64 y utiliza Wine, traducción Intel/Rosetta y DXMT. No es una recompilació
 nativa del motor ni una reimplementación del gameplay.
 
 **Estado: prototipo del lanzador verificado. Todavía no se validó una partida
-oficial de CS2.** El primer ensayo encontró Rosetta ausente en el equipo; su
-instalador exige aceptar la licencia de Apple antes de continuar. Ver el
+oficial de CS2.** Rosetta ya está instalada y el entorno abierto inicializó
+Windows, instaló Steam y completó sus actualizaciones de 32 y 64 bits. Ver el
 [registro de validación](docs/compatibility-validation.json).
 
 ## Lo implementado
@@ -25,8 +25,9 @@ instalador exige aceptar la licencia de Apple antes de continuar. Ver el
   sin compartir archivos modificables con la biblioteca original.
 - Pruebas sintéticas del lanzador y del inspector PE/VPK de la investigación inicial.
 
-El entorno abierto se pudo descargar, verificar y preparar. Su ejecución, la
-instalación de Steam y el juego online permanecen pendientes de la prueba real.
+El entorno abierto y el instalador de Steam se ejecutaron en el equipo de prueba.
+El cliente y sus procesos de interfaz ya arrancan; el inicio de sesión y la partida
+oficial siguen pendientes de verificación.
 
 ## Compilar y abrir
 
@@ -45,7 +46,8 @@ Abrí **CS2 en Mac** en `~/Applications`. La aplicación ofrece:
 
 Si ya tenés Steam y CS2 en CrossOver, elegí **Usar CrossOver existente…** y
 seleccioná esa botella. Para el entorno abierto, **Reutilizar CS2 instalado…**
-copia el contenido existente en APFS sin una segunda descarga completa. Steam
+requiere completar primero la instalación de Steam. Con Steam cerrado, copia
+el contenido existente en APFS sin una segunda descarga completa. Steam
 puede necesitar espacio y red para verificar o actualizar el juego.
 
 Los datos propios viven en `~/Library/Application Support/CS2Mac`; no se comparte

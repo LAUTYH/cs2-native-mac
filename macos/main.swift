@@ -122,6 +122,7 @@ final class Controller {
     let log: (String) -> Void
     var configURL: URL { root.appendingPathComponent("selection.json") }
     var runtime: URL { root.appendingPathComponent("runtime/sikarugir-10-dxmt080/wswine.bundle") }
+    var hostApp: URL { runtime.deletingLastPathComponent().appendingPathComponent("CS2 Steam.app") }
     var prefix: URL { root.appendingPathComponent("Steam") }
     var cache: URL { root.appendingPathComponent("cache") }
     var logURL: URL { root.appendingPathComponent("logs/steam.log") }
@@ -173,7 +174,25 @@ final class Controller {
         if selected.backend == "crossover" {
             return URL(fileURLWithPath: selected.crossOverApp!).appendingPathComponent("Contents/SharedSupport/CrossOver/bin/wine")
         }
-        return runtime.appendingPathComponent("bin/wine")
+        return hostApp.appendingPathComponent("Contents/MacOS/wine")
+    }
+
+    func prepareHostApp() throws {
+        let executable = hostApp.appendingPathComponent("Contents/MacOS/wine")
+        if regularFile(executable) { return }
+        let contents = hostApp.appendingPathComponent("Contents")
+        try fm.createDirectory(at: contents.appendingPathComponent("MacOS"), withIntermediateDirectories: true)
+        try fm.copyItem(at: runtime.appendingPathComponent("bin/wine"), to: executable)
+        // A real executable inside a bundle lets macOS identify Wine's windows as one application.
+        // Keep the loader's ../lib and ../share layout without duplicating the large runtime.
+        try fm.createSymbolicLink(atPath: contents.appendingPathComponent("lib").path, withDestinationPath: "../../wswine.bundle/lib")
+        try fm.createSymbolicLink(atPath: contents.appendingPathComponent("share").path, withDestinationPath: "../../wswine.bundle/share")
+        let info: [String: Any] = ["CFBundleIdentifier": "org.cs2mac.wine", "CFBundleName": "CS2 Steam",
+                                  "CFBundleDisplayName": "CS2 Steam", "CFBundleExecutable": "wine",
+                                  "CFBundlePackageType": "APPL", "CFBundleShortVersionString": "10.0.6",
+                                  "LSMinimumSystemVersion": "13.0", "NSHighResolutionCapable": true]
+        try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0).write(to: contents.appendingPathComponent("Info.plist"), options: .atomic)
+        try command("/usr/bin/codesign", ["--force", "--sign", "-", "--preserve-metadata=entitlements", hostApp.path])
     }
 
     func steam(_ selected: Selection) -> URL {
@@ -230,6 +249,8 @@ final class Controller {
         if selected.backend == "managed" {
             env["WINEPREFIX"] = prefix.path
             env["WINEARCH"] = "win64"
+            env["WINELOADER"] = wine(selected).path
+            env["WINESERVER"] = runtime.appendingPathComponent("bin/wineserver").path
         }
         return env
     }
@@ -238,7 +259,8 @@ final class Controller {
         let selected = try selection()
         var args: [String] = []
         if selected.backend == "crossover" { args += ["--bottle", selected.bottle!, "--no-wait", "--cx-app"] }
-        args.append(steam(selected).path)
+        // CrossOver's --cx-app takes a Windows path; native absolute paths are not converted here.
+        args.append(selected.backend == "crossover" ? "C:\\Program Files (x86)\\Steam\\steam.exe" : steam(selected).path)
         if shutdown { args.append("-shutdown") }
         else if play { args += ["-applaunch", "730"] }
         let planEnvironment = environment(selected).filter { $0.key.hasPrefix("WINE") }
@@ -260,7 +282,13 @@ final class Controller {
         process.standardOutput = handle
         process.standardError = handle
         process.standardInput = FileHandle.nullDevice
-        process.terminationHandler = { _ in try? handle.close() }
+        let report = log
+        process.terminationHandler = { finished in
+            try? handle.close()
+            if finished.terminationStatus != 0 {
+                report("No se pudo completar la apertura o el cierre de Steam (código \(finished.terminationStatus)). El detalle quedó en el registro local.")
+            }
+        }
         try process.run()
         log(message)
     }
@@ -309,7 +337,7 @@ final class Controller {
 
     func fetchRuntime() throws {
         let destination = runtime.deletingLastPathComponent()
-        if runtimeReady() { log("El entorno ya está preparado."); return }
+        if runtimeReady() { try prepareHostApp(); log("El entorno ya está preparado."); return }
         guard !fm.fileExists(atPath: destination.path) else { throw Failure("Hay un entorno incompleto. Conservé sus archivos para revisión.") }
         let archives = try assets.map { try download($0) }
         let staging = root.appendingPathComponent(".runtime-" + UUID().uuidString)
@@ -336,6 +364,7 @@ final class Controller {
         try Data(json(receipt).utf8).write(to: ready.appendingPathComponent("verified-runtime.json"), options: .atomic)
         try fm.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
         try fm.moveItem(at: ready, to: destination)
+        try prepareHostApp()
         log("Wine y DXMT preparados y verificados. No se ejecutó software de Windows.")
     }
 
@@ -381,6 +410,9 @@ final class Controller {
             }
         }
         if let error = traversalError { throw Failure("No pude revisar toda la instalación: \(error.localizedDescription)") }
+        guard regularFile(steam(Selection())) else {
+            throw Failure("Primero completá la instalación de Steam. Su instalador necesita una carpeta vacía; después podés reutilizar CS2.")
+        }
         let destination = game(Selection())
         guard !fm.fileExists(atPath: destination.path) else { throw Failure("Ya hay una instalación en el entorno administrado. Conservé ambas copias.") }
         try fm.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -557,7 +589,7 @@ func main() throws {
           setup                       Preparar entorno y abrir el instalador oficial de Steam
           use-crossover --bottle NAME [--app /Applications/CrossOver.app]
           use-managed                 Seleccionar el entorno abierto administrado
-          import-game /ruta/al/juego   Copia APFS independiente de una instalación Windows
+          import-game /ruta/al/juego   Copia APFS independiente después de instalar Steam
           steam [--dry-run]            Abrir Steam; pulsá Jugar dentro de Steam
           play [--dry-run]             Pedir a Steam que inicie el AppID 730
           stop [--dry-run]             Solicitar el cierre normal de Steam

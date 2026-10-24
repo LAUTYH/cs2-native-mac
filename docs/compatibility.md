@@ -24,7 +24,7 @@ The executable is `.build/CS2 en Mac.app/Contents/MacOS/cs2mac`.
 | `setup` | Require working Rosetta, prepare the managed prefix and launch Valve's interactive Steam installer. Select the managed backend. |
 | `use-crossover --bottle NAME [--app PATH]` | Select an existing CrossOver Steam installation without changing that bottle. |
 | `use-managed` | Select the managed environment without installing or launching anything. |
-| `import-game PATH` | Clone an existing Windows game directory into the managed prefix using APFS copy-on-write; preserve the local Steam manifest when present. Refuse overwrites and symbolic links. |
+| `import-game PATH` | After Steam is installed, clone an existing Windows game directory into the managed prefix using APFS copy-on-write; preserve the local Steam manifest when present. Refuse overwrites and symbolic links. |
 | `steam [--dry-run]` | Open Windows Steam; the user presses Play. Dry-run emits the argument vector and Wine environment overrides without creating files or executing it. |
 | `play [--dry-run]` | Ask Steam to launch AppID 730; never launch `cs2.exe` directly. Steam must be installed and logged in for the request to succeed. |
 | `stop [--dry-run]` | Request Steam's normal shutdown in the selected environment. Does not kill unrelated Wine processes or forcibly stop a stuck game. |
@@ -43,6 +43,9 @@ prefix and logs for another local profile. The default root is
   accepted. The staged engine must export `_macdrv_functions` for DXMT.
 - No `native,builtin` Direct3D overrides are installed for the selected builtin
   DXMT build. Wine's current default registry behavior remains in effect.
+- The runtime creates a locally signed macOS host bundle for Wine, retaining the
+  engine library layout. This makes the installer and Steam windows identifiable
+  as CS2 Steam without embedding runtime binaries in the distributed launcher.
 - Steam's bootstrap installer comes from Valve over HTTPS. It is mutable upstream;
   this project does not present a made-up fixed checksum or publisher verification
   claim. Steam presents installation/login UI. No terms are silently accepted.
@@ -63,7 +66,7 @@ prefix and logs for another local profile. The default root is
 
 1. Build and synthetic launcher/parser tests; architecture and visible UI checks.
 2. Package integrity and independent game-copy comparison against the saved build.
-3. Rosetta availability, runtime initialization and actual Steam launch/login.
+3. Rosetta availability, runtime initialization, Steam installation and actual login.
 4. Offline rendering, input, sound, map loading and restart.
 5. Steam-launched official Casual match and session/restart verification.
 6. Repeat in the managed open runtime and on additional Apple Silicon hardware.
@@ -89,3 +92,17 @@ The [DXMT upstream project](https://github.com/3Shain/dxmt) supplies Direct3D-to
 compatibility. [CS2Kit's documentation](https://github.com/piwas-21/cs2-apple-silicon)
 was a configuration reference, not a source-code dependency or proof of results
 on this project. Runtime versions and package provenance are in THIRD_PARTY.md.
+
+## Initial Steam update behavior
+
+On the test host, the official installer first fetched the 32-bit client package,
+then the 64-bit package. Both completed. The Wine bootstrap window persisted
+after its log recorded Shutdown; restarting only the managed Wine prefix allowed
+the next stage. The third launch verified the installed files and started the
+64-bit CEF frontend with healthy local WebUI connections. This is an observed
+initial-install workaround, not an automatic recovery feature or proof of login.
+A similar [upstream Sikarugir report](https://github.com/Sikarugir-App/Sikarugir/issues/186)
+describes multiple initial restarts; its cause was not established.
+
+The control tool timed out when reading the post-update Steam window. Actual
+login visibility is pending user confirmation; no official match is claimed.

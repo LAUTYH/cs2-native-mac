@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "recorded_at_utc": "2026-10-24T06:15:04.561121+00:00",
+  "recorded_at_utc": "2026-10-24T06:44:09.157041+00:00",
   "version": "0.2.0",
-  "status": "blocked-on-rosetta-license-acceptance",
+  "status": "steam-running-awaiting-ui-and-sign-in-verification",
   "goal": "Original CS2, launched by Windows Steam, completes an official Casual match on Apple Silicon",
   "host": {
     "cpu": "Apple M5",
@@ -17,11 +17,11 @@
     "gui_observed": true,
     "installed_app_observed": true,
     "apple_rosetta_installer_opened": true,
-    "sha256": "3830da93b8809f05af33d4dc6c96025595dc6f65576de5781f33990db228867a"
+    "sha256": "5c9b998a2391d18f429535ebcb433b315eda8d3f5bc8c1926961da412c788c1d"
   },
   "tests": {
     "inspector_passed": 34,
-    "launcher_passed": 11,
+    "launcher_passed": 12,
     "launcher_scope": "Synthetic integration fixtures; no Windows application, downloads or credentials used"
   },
   "managed_runtime": {
@@ -29,7 +29,9 @@
     "archive_sha256_verified": true,
     "staged": true,
     "wine_driver_exports_checked": true,
-    "execution_observed": false
+    "execution_observed": true,
+    "wine_version_observed": "wine-10.0 (Sikarugir)",
+    "native_wine_host_bundle_created": true
   },
   "local_game": {
     "steam_manifest_build_id": "24957633",
@@ -43,13 +45,38 @@
   "steam_login_observed": false,
   "official_match_verified": false,
   "other_machines_verified": false,
-  "blocker": "The official Apple installer requires user acceptance of the software license before Rosetta can be installed. The Intel-execution check fails with Bad CPU type in executable.",
+  "blocker": "Steam and its CEF frontend are running, but the control tool times out when reading their post-update window. User confirmation of the visible UI and normal Steam sign-in are pending.",
   "remaining": [
-    "Install Rosetta with user license acceptance",
-    "Launch original Steam and complete normal sign-in",
+    "Verify the visible Steam login/library and complete normal sign-in",
     "Verify offline graphics, input, audio and restart",
     "Complete an official Casual match through Steam",
-    "Repeat in managed Wine/DXMT and on other Apple Silicon hardware",
+    "Validate automatic recovery for the initial Steam update handoff",
+    "Repeat on other Apple Silicon hardware",
     "Developer ID signing, notarization and release/update delivery"
-  ]
+  ],
+  "rosetta": {
+    "license_acceptance_authorized_by_user": true,
+    "installed": true,
+    "intel_execution_check_passed": true
+  },
+  "crossover_reference": {
+    "version": "26.3",
+    "trial_expired": true,
+    "game_launched": false,
+    "used_for_managed_runtime": false
+  },
+  "steam": {
+    "official_installer_completed": true,
+    "client_process_observed": true,
+    "cef_frontend_processes_observed": true,
+    "client_version": "1792618285",
+    "architecture": "x86_64",
+    "initial_packages": [
+      "win32",
+      "win64"
+    ],
+    "local_webui_connections_observed": true,
+    "initial_update_restarts_required": 2,
+    "post_update_ui_control_timed_out": true
+  }
 }
