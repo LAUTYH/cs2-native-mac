@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-10-24T06:15:04.561121+00:00",
+  "version": "0.2.0",
+  "status": "blocked-on-rosetta-license-acceptance",
+  "goal": "Original CS2, launched by Windows Steam, completes an official Casual match on Apple Silicon",
+  "host": {
+    "cpu": "Apple M5",
+    "memory_bytes": 17179869184,
+    "macos": "27.0.1"
+  },
+  "launcher": {
+    "architecture": "arm64",
+    "deployment_target": "13.0",
+    "signature": "ad-hoc",
+    "notarized": false,
+    "gui_observed": true,
+    "installed_app_observed": true,
+    "apple_rosetta_installer_opened": true,
+    "sha256": "3830da93b8809f05af33d4dc6c96025595dc6f65576de5781f33990db228867a"
+  },
+  "tests": {
+    "inspector_passed": 34,
+    "launcher_passed": 11,
+    "launcher_scope": "Synthetic integration fixtures; no Windows application, downloads or credentials used"
+  },
+  "managed_runtime": {
+    "archives_downloaded": 3,
+    "archive_sha256_verified": true,
+    "staged": true,
+    "wine_driver_exports_checked": true,
+    "execution_observed": false
+  },
+  "local_game": {
+    "steam_manifest_build_id": "24957633",
+    "apfs_independent_copy_created": true,
+    "selected_artifacts_with_unchanged_digests": 8,
+    "compared_files_have_distinct_inodes": true,
+    "vpk_identity_scope": "header-and-tree-only",
+    "all_payload_chunks_hashed": false
+  },
+  "game_execution_observed": false,
+  "steam_login_observed": false,
+  "official_match_verified": false,
+  "other_machines_verified": false,
+  "blocker": "The official Apple installer requires user acceptance of the software license before Rosetta can be installed. The Intel-execution check fails with Bad CPU type in executable.",
+  "remaining": [
+    "Install Rosetta with user license acceptance",
+    "Launch original Steam and complete normal sign-in",
+    "Verify offline graphics, input, audio and restart",
+    "Complete an official Casual match through Steam",
+    "Repeat in managed Wine/DXMT and on other Apple Silicon hardware",
+    "Developer ID signing, notarization and release/update delivery"
+  ]
+}
