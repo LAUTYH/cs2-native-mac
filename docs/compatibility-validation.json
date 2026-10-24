@@ -1,0 +1,199 @@
+{
+  "schema_version": 2,
+  "recorded_at_utc": "2026-10-24T17:08:37.759608+00:00",
+  "version": "0.2.0",
+  "status": "first-official-online-play-confirmed-by-user",
+  "goal": "Run original CS2 through Windows Steam on Apple Silicon and play on official servers",
+  "host": {
+    "cpu": "Apple M5",
+    "memory_bytes": 17179869184,
+    "macos": "27.0.1"
+  },
+  "launcher": {
+    "architecture": "arm64",
+    "deployment_target": "13.0",
+    "signature": "ad-hoc",
+    "notarized": false,
+    "gui_observed": true,
+    "installed_app_observed": true,
+    "apple_rosetta_installer_opened": true,
+    "sha256": "2bfbc32da9521f9139f4ec31ce57839d1ff1b4a327393a04c5ed864edb4d26ec"
+  },
+  "tests": {
+    "inspector_passed": 34,
+    "launcher_passed": 18,
+    "launcher_scope": "Synthetic integration fixtures; no Windows application, downloads or credentials used",
+    "total_passed": 52
+  },
+  "managed_runtime": {
+    "archives_downloaded": 3,
+    "archive_sha256_verified": true,
+    "staged": true,
+    "wine_driver_exports_checked": true,
+    "execution_observed": true,
+    "wine_version_observed": "wine-10.0 (Sikarugir)",
+    "native_wine_host_bundle_created": true,
+    "install_driver_identity_sha256": "4cbf65e363d6d8b5a70dba719b50b811fb4b2705985e93f777c6cb7a12878eb0",
+    "end_user_nm_dependency": false
+  },
+  "local_game": {
+    "apfs_independent_copy_created": true,
+    "selected_artifacts_with_unchanged_digests": 8,
+    "compared_files_have_distinct_inodes": true,
+    "vpk_identity_scope": "header-and-tree-only",
+    "all_payload_chunks_hashed": false,
+    "initial_source_build_id": "24957633",
+    "current_managed_build_id": "26144732",
+    "managed_update_performed_by": "Valve Steam client",
+    "initial_copy_comparison_scope": "Eight selected artifacts before the official Steam update; original source preserved",
+    "current_artifact_identities": [
+      {
+        "relative_path": "game/bin/win64/cs2.exe",
+        "format": "PE32+",
+        "target_architecture": "x86_64",
+        "file_size": 2967704,
+        "sha256": "8614097aaa2761b0a7157c0045861713e769fb1e8235f50fc68f411294dd60cf",
+        "identity_scope": "complete-input-file"
+      },
+      {
+        "relative_path": "game/bin/win64/engine2.dll",
+        "format": "PE32+",
+        "target_architecture": "x86_64",
+        "file_size": 7497880,
+        "sha256": "e8533af07adc3426eac95391cb70804a0a27f8391c03d36f1cfa06f50d901d29",
+        "identity_scope": "complete-input-file"
+      },
+      {
+        "relative_path": "game/bin/win64/rendersystemvulkan.dll",
+        "format": "PE32+",
+        "target_architecture": "x86_64",
+        "file_size": 6248600,
+        "sha256": "f1fe4ee70c284f85401919dcc85307e6fa00760fc1a0f2041a1bc25d9d1562cb",
+        "identity_scope": "complete-input-file"
+      },
+      {
+        "relative_path": "game/bin/win64/steam_api64.dll",
+        "format": "PE32+",
+        "target_architecture": "x86_64",
+        "file_size": 317080,
+        "sha256": "2a785780af426dfc5c809087d100db8d4ff41a1e1a2956ad5473689e77e3c863",
+        "identity_scope": "complete-input-file"
+      },
+      {
+        "relative_path": "game/csgo/bin/win64/client.dll",
+        "format": "PE32+",
+        "target_architecture": "x86_64",
+        "file_size": 39215768,
+        "sha256": "ccaf4e4926babc052994502b19ec61198a11008a39dce712921b93dd993be9f5",
+        "identity_scope": "complete-input-file"
+      },
+      {
+        "relative_path": "game/csgo/pak01_dir.vpk",
+        "format": "VPK",
+        "file_size": 7708830,
+        "sha256_header_and_tree": "bab50fd290f2203c6a0e2f3a21471ba030b64e9e99f146b86e2a0bcaa29f6f94",
+        "identity_scope": "header-and-tree-only"
+      },
+      {
+        "relative_path": "game/csgo/shaders_vulkan_dir.vpk",
+        "format": "VPK",
+        "file_size": 41884,
+        "sha256_header_and_tree": "ca7ebf3c7211e997585d41ac20647bd4765631ed6e92b03872e52a7b7651126e",
+        "identity_scope": "header-and-tree-only"
+      },
+      {
+        "relative_path": "game/core/pak01_dir.vpk",
+        "format": "VPK",
+        "file_size": 85252,
+        "sha256_header_and_tree": "7150b714850e81c031363615f91594d78758e086644f241a1638b59a885758bc",
+        "identity_scope": "header-and-tree-only"
+      }
+    ]
+  },
+  "game_execution_observed": true,
+  "steam_login_observed": true,
+  "other_machines_verified": false,
+  "blocker": null,
+  "remaining": [
+    "Measure FPS/frame times and optimize performance",
+    "Independently verify audio and a full-match duration/restart scenario",
+    "Repeat full installation/game tests on other Apple Silicon hardware",
+    "Validate initial-update recovery on a second fresh installation",
+    "Developer ID signing, notarization and release/update delivery"
+  ],
+  "rosetta": {
+    "license_acceptance_authorized_by_user": true,
+    "installed": true,
+    "intel_execution_check_passed": true
+  },
+  "crossover_reference": {
+    "version": "26.3",
+    "trial_expired": true,
+    "game_launched": false,
+    "used_for_managed_runtime": false
+  },
+  "steam": {
+    "official_installer_completed": true,
+    "client_process_observed": true,
+    "cef_frontend_processes_observed": true,
+    "client_version": "1792618285",
+    "architecture": "x86_64",
+    "initial_packages": [
+      "win32",
+      "win64"
+    ],
+    "local_webui_connections_observed": true,
+    "initial_update_restarts_required": 2,
+    "post_update_ui_control_timed_out": true
+  },
+  "steam_login_evidence": [
+    "User confirmed normal sign-in",
+    "Local Steam logon-success marker"
+  ],
+  "official_online_play_verified": true,
+  "official_online_play_evidence": {
+    "source": "user confirmation in this project session",
+    "question_scope": "Play on an official CS2 server",
+    "response": "User confirmed online play",
+    "agent_direct_ui_observation": false,
+    "full_match_duration_recorded": false
+  },
+  "offline_play": {
+    "mode": "deathmatch",
+    "confirmed_by": "user",
+    "keyboard_and_mouse_confirmed": true,
+    "audio_independently_verified": false
+  },
+  "loaded_modules_observed": [
+    "engine2.dll",
+    "client.dll",
+    "rendersystemdx11.dll",
+    "d3d11.dll",
+    "dxgi.dll",
+    "winemetal.so"
+  ],
+  "performance": {
+    "user_report": "Offline play felt laggy",
+    "fps_measured": false,
+    "optimized": false,
+    "prior_host_snapshot": {
+      "memory_pressure_level": 2,
+      "swap_used_mib": 9111.56
+    },
+    "causal_attribution": "Not established; memory pressure can contribute but is not a complete performance diagnosis"
+  },
+  "initial_recovery": {
+    "mode": "Synchronous on explicit steam/play request",
+    "background_restart_monitor": false,
+    "shared_control_lock": true,
+    "persistent_receipt_budget": 2,
+    "frontend_evidence_prevents_reset": true,
+    "running_cs2_prevents_reset": true,
+    "second_fresh_installation_tested": false
+  },
+  "package": {
+    "name": "CS2Mac-0.2.0-arm64.zip",
+    "sha256": "0ee81eda19070cd52b01a69bfc7271cd3c2f4ef0df4e24b3a992a00a6934b8fa",
+    "bundles_valve_or_runtime_binaries": false
+  }
+}

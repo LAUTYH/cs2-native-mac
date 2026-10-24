@@ -1,92 +1,90 @@
-# CS2 native macOS research
+# CS2 en Mac
 
-An open-source research project toward a native ARM64 macOS implementation
-compatible with Counter-Strike 2.
+Un lanzador abierto para ejecutar **el Counter-Strike 2 original de Valve** en
+Mac con Apple Silicon mediante compatibilidad. Cada usuario usa el Steam oficial
+de Windows, su cuenta y la descarga original del juego.
 
-**Current milestone: a working native inspection tool and an evidence-backed
-bootstrap investigation. There is no playable macOS CS2 client in this repository.**
+El lanzador está compilado para ARM64. El juego conserva sus binarios Windows
+x86_64 y utiliza Wine, traducción Intel/Rosetta y DXMT. No es una recompilación
+nativa del motor ni una reimplementación del gameplay.
 
-## What works today
+**Primera prueba lograda en el equipo de desarrollo:** el usuario confirmó
+inicio de sesión en Steam, un deathmatch offline y juego online en servidores
+oficiales. El rendimiento todavía requiere optimización. Ver el
+[registro de validación](docs/compatibility-validation.json).
 
-- An original C++20 command-line tool compiled as Mach-O ARM64 on Apple Silicon.
-- Bounded PE32/PE32+ inspection: architecture, SHA-256, sections, and normal DLL imports.
-- VPK v1/v2 directory inspection: paths, resource categories, archive references,
-  preload metadata, bounded listings, and a header/tree digest.
-- A reproducible inventory of selected locally installed game files.
-- Ghidra 12.1.4 observations of the real Windows launcher and Source2Main.
+## Lo implementado
 
-The native tool is a first filesystem/inspection component. It does not execute
-the Windows binaries, translate their CPU instructions, or implement Source 2.
+- App macOS con apertura de Steam, diagnóstico y solicitud de cierre normal.
+- Uso opcional de una instalación existente de Steam en CrossOver.
+- Preparación de un entorno separado con Wine/DXMT descargados del proveedor y
+  verificados por SHA-256, sin depender de una licencia de CrossOver.
+- Instalador oficial de Steam; el usuario completa su instalación e inicia sesión
+  en la interfaz de Valve.
+- Reutilización de una instalación Windows mediante copia APFS independiente,
+  sin compartir archivos modificables con la biblioteca original.
+- Pruebas sintéticas del lanzador y del inspector PE/VPK de la investigación inicial.
 
-## Build and test
+El entorno abierto y el instalador de Steam se ejecutaron en el equipo de prueba.
+Steam actualizó CS2 al build `26144732` y lanzó el ejecutable original.
+La confirmación visual y de juego proviene del usuario; la herramienta de control
+no pudo leer las ventanas posteriores a la actualización de Steam. Esto valida
+una primera prueba, no compatibilidad universal ni rendimiento garantizado.
 
-Requirements: Apple Silicon, macOS with Xcode Command Line Tools, make, and Python
-3.9+ for the test runner. No third-party packages are downloaded by the build.
+## Compilar y abrir
 
-~~~sh
-make
-make test
-file .build/cs2-native-lab
-~~~
+Para desarrollar: Apple Silicon, Xcode Command Line Tools y Python 3.9+ para las
+pruebas. El lanzador compilado no necesita Python.
 
-The tests use synthetic inputs. They cover PE32/PE32+ imports, VPK v1/v2,
-truncation, overflowing ranges, invalid strings, directory traversal, empty-entry
-sentinels, and non-regular inputs.
+```sh
+make install-app
+```
 
-## Inspect your local files
+Abrí **CS2 en Mac** en `~/Applications`. La aplicación ofrece:
 
-Point CS2_GAME_ROOT at a game installation you obtained through Steam:
+1. **Instalar Rosetta…**: abre el instalador de Apple, que presenta su licencia.
+2. **Preparar Steam**: prepara Wine/DXMT y abre el instalador oficial de Steam.
+3. **Abrir Steam**: iniciá sesión, instalá CS2 y pulsá **Jugar** dentro de Steam.
 
-~~~sh
-CS2_GAME_ROOT="/absolute/path/to/Counter-Strike Global Offensive"
+Si la actualización inicial de Steam queda en «Iniciando Steam», esperá unos
+segundos y pulsá **Abrir Steam** otra vez. El lanzador puede recuperar ese relevo
+inicial de forma acotada; no programa reinicios en segundo plano.
 
-.build/cs2-native-lab inspect-pe \
-  "$CS2_GAME_ROOT/game/bin/win64/cs2.exe"
+Si ya tenés Steam y CS2 en CrossOver, elegí **Usar CrossOver existente…** y
+seleccioná esa botella. Para el entorno abierto, **Reutilizar CS2 instalado…**
+requiere completar primero la instalación de Steam. Con Steam cerrado, copia
+el contenido existente en APFS sin una segunda descarga completa. Steam
+puede necesitar espacio y red para verificar o actualizar el juego.
 
-.build/cs2-native-lab inspect-vpk \
-  "$CS2_GAME_ROOT/game/csgo/pak01_dir.vpk" --filter models --limit 5
+Los datos propios viven en `~/Library/Application Support/CS2Mac`; no se comparte
+la biblioteca con Steam de macOS. Las credenciales se introducen únicamente en
+Steam. La app no lee ni exporta contraseñas o tickets.
 
-python3 tools/capture_baseline.py --root "$CS2_GAME_ROOT" \
-  --output .local/baseline.json
-~~~
+## Línea de comandos y pruebas
 
-All inspections are static. The VPK command reads the index, not every numbered
-archive. Its digest identifies the header/tree only; payload checksums and
-signatures are not verified. The PE command does not inventory dynamically loaded
-modules or delay imports. JSON output preserves these limits.
+```sh
+make check
+'.build/CS2 en Mac.app/Contents/MacOS/cs2mac' doctor --json
+'.build/CS2 en Mac.app/Contents/MacOS/cs2mac' steam --dry-run
+make dist
+```
 
-## Research result and next milestone
+`make dist` genera `artifacts/CS2Mac-0.2.0-arm64.zip`, con la app y sus documentos;
+no incluye Wine, Steam ni archivos de CS2. La firma actual es ad hoc para pruebas,
+sin notarización de distribución. El deployment target del lanzador es macOS 13;
+su interfaz se comprobó en macOS 27. Otras versiones y equipos siguen pendientes.
 
-The inspected Windows build is 24957633. Ghidra identified 853 launcher procedures
-and 13,171 procedures in engine2.dll. Only selected bootstrap functions were
-decompiled. The main CS2 VPK directory contains 135,686 entries.
+Más instrucciones y límites en [el flujo de compatibilidad](docs/compatibility.md).
 
-See [initial findings](docs/initial-findings.md),
-[the artifact baseline](docs/artifact-baseline.json), and
-[useful external resources](docs/resources.md).
+## Investigación y procedencia
 
-The next useful milestone is bounded reading and verification of one VPK entry,
-followed by decoding one real resource and displaying it in a native macOS
-renderer. That would establish resource and graphics compatibility, not yet a
-playable game.
+La investigación estática anterior se conserva en
+[initial-findings.md](docs/initial-findings.md),
+[artifact-baseline.json](docs/artifact-baseline.json) y
+[resources.md](docs/resources.md). El inspector C++ se compila con
+`make .build/cs2-native-lab`. Sus resultados no demuestran ejecución del juego.
 
-Subsequent work includes the engine platform layer, CPU/SIMD behavior, rendering,
-shaders, resource systems, physics, audio, input, gameplay, networking, and Steam
-integration. Each needs its own evidence and acceptance test.
-
-Steamworks supplies a macOS x64/ARM64 library, but this does not establish that a
-reconstructed client can use CS2 matchmaking or be published under AppID 730.
-The official product's builds and launch configuration require its Steamworks
-publisher permissions. See [Valve's API documentation](https://partner.steamgames.com/doc/sdk/api)
-and [build publication requirements](https://partner.steamgames.com/doc/sdk/uploading).
-
-## Code and research provenance
-
-Original repository code is [MIT licensed](LICENSE). That license covers our code,
-not Valve's binaries, assets, or decompiler output. Researchers obtain game
-content through Steam and keep raw evidence and pseudocode in the ignored
-.local/ directory.
-
-Public findings link observations to artifact digests and evidence identifiers.
-No formal clean-room process or compatibility with the complete game is claimed.
-See [contributing](CONTRIBUTING.md) for the contribution boundary.
+El código original del proyecto es [MIT](LICENSE). Cada componente externo conserva
+su licencia: [THIRD_PARTY.md](THIRD_PARTY.md). No se distribuyen recursos de Valve,
+fuentes filtradas ni pseudocódigo del juego. Proyecto comunitario sin afiliación
+con Valve, Apple o CodeWeavers.
