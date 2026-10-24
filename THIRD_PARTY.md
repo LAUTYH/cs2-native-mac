@@ -20,6 +20,11 @@ Upstream sources and license files are available through the linked projects.
 Do not redistribute a runtime bundle without satisfying the licenses of all its
 components. This launcher only bundles its original executable and documentation.
 
+The Wine archive's `lib/wine/x86_64-unix/winemac.so` has SHA-256
+`4cbf65e363d6d8b5a70dba719b50b811fb4b2705985e93f777c6cb7a12878eb0`.
+Its required DXMT export was checked during development; runtime setup verifies
+this module identity without requiring developer tools on the player's Mac.
+
 Rosetta, CrossOver, Steam and Counter-Strike 2 are third-party products with their
 own terms. Rosetta is installed through Apple's own installer, with the user's
 license acceptance. CrossOver is an optional existing-installation backend; it is

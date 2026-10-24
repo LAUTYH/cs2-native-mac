@@ -43,7 +43,9 @@ prefix and logs for another local profile. The default root is
   download or staging operation is not promoted to the active runtime.
 - Extraction uses the system archive tool with path checks, the fixed trusted
   package digest, and no owner restoration. Only the expected package roots are
-  accepted. The staged engine must export `_macdrv_functions` for DXMT.
+  accepted. The staged Wine driver is checked against the SHA-256 of the upstream
+  module verified during development to export `_macdrv_functions`. Installation
+  does not invoke Xcode tools such as `nm` on the player's Mac.
 - No `native,builtin` Direct3D overrides are installed for the selected builtin
   DXMT build. Wine's current default registry behavior remains in effect.
 - The runtime creates a locally signed macOS host bundle for Wine, retaining the

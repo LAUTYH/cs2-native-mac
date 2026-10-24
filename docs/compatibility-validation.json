@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "recorded_at_utc": "2026-10-24T17:01:11.083051+00:00",
+  "recorded_at_utc": "2026-10-24T17:08:37.759608+00:00",
   "version": "0.2.0",
   "status": "first-official-online-play-confirmed-by-user",
   "goal": "Run original CS2 through Windows Steam on Apple Silicon and play on official servers",
@@ -17,7 +17,7 @@
     "gui_observed": true,
     "installed_app_observed": true,
     "apple_rosetta_installer_opened": true,
-    "sha256": "8f6d8977fa41d93c0d1bef8eeda0eaddee108e86dc48ab0033c88ccb83fcf02f"
+    "sha256": "2bfbc32da9521f9139f4ec31ce57839d1ff1b4a327393a04c5ed864edb4d26ec"
   },
   "tests": {
     "inspector_passed": 34,
@@ -32,7 +32,9 @@
     "wine_driver_exports_checked": true,
     "execution_observed": true,
     "wine_version_observed": "wine-10.0 (Sikarugir)",
-    "native_wine_host_bundle_created": true
+    "native_wine_host_bundle_created": true,
+    "install_driver_identity_sha256": "4cbf65e363d6d8b5a70dba719b50b811fb4b2705985e93f777c6cb7a12878eb0",
+    "end_user_nm_dependency": false
   },
   "local_game": {
     "apfs_independent_copy_created": true,
@@ -191,7 +193,7 @@
   },
   "package": {
     "name": "CS2Mac-0.2.0-arm64.zip",
-    "sha256": "62022b27a6b8b1759e425c3a56b530d63f406d2d309232f8c6c05325571e5312",
+    "sha256": "0ee81eda19070cd52b01a69bfc7271cd3c2f4ef0df4e24b3a992a00a6934b8fa",
     "bundles_valve_or_runtime_binaries": false
   }
 }

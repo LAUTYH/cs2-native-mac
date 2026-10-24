@@ -445,8 +445,12 @@ final class Controller {
         }
         guard regularFile(engine.appendingPathComponent("bin/wine")),
               regularFile(engine.appendingPathComponent("lib/wine/x86_64-unix/winemetal.so")) else { throw Failure("El paquete no contiene el entorno esperado.") }
-        let symbols = try command("/usr/bin/nm", ["-g", engine.appendingPathComponent("lib/wine/x86_64-unix/winemac.so").path])
-        guard symbols.contains("_macdrv_functions") else { throw Failure("Este Wine no expone la interfaz necesaria para DXMT.") }
+        // This exact upstream driver was verified to export _macdrv_functions during
+        // development. Check its identity without requiring Xcode/nm on players' Macs.
+        let driver = engine.appendingPathComponent("lib/wine/x86_64-unix/winemac.so")
+        guard try sha256(driver) == "4cbf65e363d6d8b5a70dba719b50b811fb4b2705985e93f777c6cb7a12878eb0" else {
+            throw Failure("El controlador de Wine no coincide con la versión verificada para DXMT.")
+        }
         let ready = staging.appendingPathComponent("ready")
         try fm.createDirectory(at: ready, withIntermediateDirectories: true)
         try fm.moveItem(at: engine, to: ready.appendingPathComponent("wswine.bundle"))
