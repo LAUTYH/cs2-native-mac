@@ -1,10 +1,12 @@
 """Integration checks for the native launcher; no Steam, downloads or credentials."""
 
 import json
+import fcntl
 import os
 from pathlib import Path
 import subprocess
 import tempfile
+import time
 import unittest
 
 
@@ -88,7 +90,7 @@ class LauncherTests(unittest.TestCase):
         result = self.invoke("doctor", "--json", valid=False)
         report = json.loads(result.stdout)
         self.assertFalse(report["readyToOpenSteam"])
-        self.assertFalse(report["officialOnlineVerified"])
+        self.assertFalse(report["liveOnlineSessionChecked"])
         self.assertFalse(self.root.exists())
         self.assertNotIn(str(Path.home()), result.stdout)
 
@@ -134,6 +136,73 @@ class LauncherTests(unittest.TestCase):
         source, _, _ = self.source_game()
         self.assertIn("carpeta vacía", self.invoke("import-game", str(source), valid=False).stderr)
         self.assertFalse(self.root.exists())
+
+    def bootstrap_fixture(self):
+        self.prepare_steam()
+        steam = self.root / "Steam/drive_c/Program Files (x86)/Steam"
+        (steam / "logs").mkdir()
+        (steam / "package").mkdir()
+        log = steam / "logs/bootstrap_log.txt"
+        receipt = steam / "package/steam_client_win64.installed"
+        log.write_text("[test] Committing NTFS transaction\n[test] Shutdown\n")
+        receipt.write_text("synthetic installed receipt")
+        old = int(time.time()) - 30
+        for path in (log, receipt):
+            os.utime(path, (old, old))
+        return steam, log, receipt
+
+    def test_bootstrap_status_is_read_only_before_any_update(self):
+        result = json.loads(self.invoke("bootstrap-status").stdout)
+        self.assertEqual(result["phase"], "waiting")
+        self.assertFalse(self.root.exists())
+
+    def test_completed_initial_update_is_distinct_from_an_active_update(self):
+        _, log, _ = self.bootstrap_fixture()
+        self.assertEqual(json.loads(self.invoke("bootstrap-status").stdout)["phase"], "restart-required")
+        log.write_text("[test] Downloading update\n")
+        self.assertEqual(json.loads(self.invoke("bootstrap-status").stdout)["phase"], "waiting")
+
+    def test_frontend_evidence_prevents_initial_bootstrap_recovery(self):
+        steam, _, _ = self.bootstrap_fixture()
+        frontend = steam / "logs/steamui_system.txt"
+        frontend.write_text("synthetic frontend startup")
+        self.assertEqual(json.loads(self.invoke("bootstrap-status").stdout)["phase"], "frontend-started")
+        self.assertEqual(frontend.read_text(), "synthetic frontend startup")
+
+    def test_already_handled_update_cannot_trigger_another_reset(self):
+        _, _, receipt = self.bootstrap_fixture()
+        record = {"handledReceipts": [int(receipt.stat().st_mtime)]}
+        (self.root / "bootstrap-recovery.json").write_text(json.dumps(record))
+        self.assertEqual(json.loads(self.invoke("bootstrap-status").stdout)["phase"], "already-recovered")
+
+    def test_initial_recovery_budget_and_corrupt_records_fail_closed(self):
+        self.bootstrap_fixture()
+        ledger = self.root / "bootstrap-recovery.json"
+        ledger.write_text(json.dumps({"handledReceipts": [1, 2]}))
+        self.assertEqual(json.loads(self.invoke("bootstrap-status").stdout)["phase"], "recovery-limit")
+        ledger.write_text("corrupt")
+        self.assertEqual(json.loads(self.invoke("bootstrap-status").stdout)["phase"], "recovery-blocked")
+
+    def test_configuration_mutations_wait_for_the_shared_control_lock(self):
+        self.root.mkdir()
+        with (self.root / "control.lock").open("w") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            process = subprocess.Popen(
+                [LAUNCHER, "--data-root", str(self.root), "use-managed"],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            )
+            try:
+                with self.assertRaises(subprocess.TimeoutExpired):
+                    process.communicate(timeout=0.2)
+                self.assertFalse((self.root / "selection.json").exists())
+                fcntl.flock(lock, fcntl.LOCK_UN)
+                _, error = process.communicate(timeout=15)
+                self.assertEqual(process.returncode, 0, error)
+                self.assertEqual(json.loads((self.root / "selection.json").read_text())["backend"], "managed")
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.communicate()
 
 
 if __name__ == "__main__":

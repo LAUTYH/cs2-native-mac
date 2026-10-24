@@ -9,9 +9,11 @@ stack. It does not translate CPU instructions itself, rebuild the game, inject
 into CS2, or bypass Steam authentication. Game launch always goes through Steam:
 the GUI opens the client; the optional CLI `play` asks Steam to launch AppID 730.
 
-The first accepted game proof is a completed official Casual match, with working
-input, sound, graphics and stable networking, followed by a clean restart. Offline
-tests are intermediate checks. The current result is in compatibility-validation.json.
+The first game proof is original CS2 launched through Steam and played online on
+official servers. The user confirmed offline deathmatch and official online play
+on the development host. Full-match duration, audio, measured frame times and a
+controlled clean-restart test are not independently verified. The current result
+is in compatibility-validation.json.
 
 ## Command reference
 
@@ -20,6 +22,7 @@ The executable is `.build/CS2 en Mac.app/Contents/MacOS/cs2mac`.
 | Command | Behavior |
 | --- | --- |
 | `doctor [--json]` | Read-only prerequisites and selected-backend diagnosis; exit 1 when required checks fail. JSON excludes account identifiers and absolute home paths. |
+| `bootstrap-status` | Read-only state of initial Steam update handoff, including recovery budget/previously handled receipts. |
 | `fetch-runtime` | Download and stage the pinned Wine/DXMT runtime; verify SHA-256 and required Wine exports. Does not execute Windows software or select a different backend. |
 | `setup` | Require working Rosetta, prepare the managed prefix and launch Valve's interactive Steam installer. Select the managed backend. |
 | `use-crossover --bottle NAME [--app PATH]` | Select an existing CrossOver Steam installation without changing that bottle. |
@@ -100,9 +103,23 @@ then the 64-bit package. Both completed. The Wine bootstrap window persisted
 after its log recorded Shutdown; restarting only the managed Wine prefix allowed
 the next stage. The third launch verified the installed files and started the
 64-bit CEF frontend with healthy local WebUI connections. This is an observed
-initial-install workaround, not an automatic recovery feature or proof of login.
+initial-install workaround. The launcher now applies a bounded recovery only
+on an explicit open/play request, after a completed update has settled for 20
+seconds and before any frontend evidence exists. It refuses a reset when CS2 is
+running. A shared process lock serializes launch, selection and stop, while a
+persistent ledger prevents handling the same receipt twice and caps recovery at
+two receipts. Invalid records prevent recovery. There is no background restart
+monitor. Live recovery of a second fresh installation remains untested.
 A similar [upstream Sikarugir report](https://github.com/Sikarugir-App/Sikarugir/issues/186)
 describes multiple initial restarts; its cause was not established.
 
-The control tool timed out when reading the post-update Steam window. Actual
-login visibility is pending user confirmation; no official match is claimed.
+The control tool timed out when reading the post-update Steam/game windows. The
+user subsequently confirmed Steam login, visible game/menu, keyboard and mouse,
+offline deathmatch and official online play. These are user-reported results,
+corroborated by Steam launch logs, the running game process and loaded Valve
+engine/client/DX11 modules plus Wine/DXMT. They are not a measured performance
+benchmark or a general guarantee for other machines.
+
+`doctor` checks prerequisites. Its `liveOnlineSessionChecked` field remains false:
+it does not inspect a live match or read authentication data. Manual compatibility
+evidence is recorded separately in compatibility-validation.json.

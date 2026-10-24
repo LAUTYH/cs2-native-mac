@@ -8,9 +8,9 @@ El lanzador está compilado para ARM64. El juego conserva sus binarios Windows
 x86_64 y utiliza Wine, traducción Intel/Rosetta y DXMT. No es una recompilación
 nativa del motor ni una reimplementación del gameplay.
 
-**Estado: prototipo del lanzador verificado. Todavía no se validó una partida
-oficial de CS2.** Rosetta ya está instalada y el entorno abierto inicializó
-Windows, instaló Steam y completó sus actualizaciones de 32 y 64 bits. Ver el
+**Primera prueba lograda en el equipo de desarrollo:** el usuario confirmó
+inicio de sesión en Steam, un deathmatch offline y juego online en servidores
+oficiales. El rendimiento todavía requiere optimización. Ver el
 [registro de validación](docs/compatibility-validation.json).
 
 ## Lo implementado
@@ -26,8 +26,10 @@ Windows, instaló Steam y completó sus actualizaciones de 32 y 64 bits. Ver el
 - Pruebas sintéticas del lanzador y del inspector PE/VPK de la investigación inicial.
 
 El entorno abierto y el instalador de Steam se ejecutaron en el equipo de prueba.
-El cliente y sus procesos de interfaz ya arrancan; el inicio de sesión y la partida
-oficial siguen pendientes de verificación.
+Steam actualizó CS2 al build `26144732` y lanzó el ejecutable original.
+La confirmación visual y de juego proviene del usuario; la herramienta de control
+no pudo leer las ventanas posteriores a la actualización de Steam. Esto valida
+una primera prueba, no compatibilidad universal ni rendimiento garantizado.
 
 ## Compilar y abrir
 
@@ -43,6 +45,10 @@ Abrí **CS2 en Mac** en `~/Applications`. La aplicación ofrece:
 1. **Instalar Rosetta…**: abre el instalador de Apple, que presenta su licencia.
 2. **Preparar Steam**: prepara Wine/DXMT y abre el instalador oficial de Steam.
 3. **Abrir Steam**: iniciá sesión, instalá CS2 y pulsá **Jugar** dentro de Steam.
+
+Si la actualización inicial de Steam queda en «Iniciando Steam», esperá unos
+segundos y pulsá **Abrir Steam** otra vez. El lanzador puede recuperar ese relevo
+inicial de forma acotada; no programa reinicios en segundo plano.
 
 Si ya tenés Steam y CS2 en CrossOver, elegí **Usar CrossOver existente…** y
 seleccioná esa botella. Para el entorno abierto, **Reutilizar CS2 instalado…**

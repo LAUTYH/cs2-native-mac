@@ -15,9 +15,10 @@ $(TARGET): src/main.cpp
 test: $(TARGET)
 	CS2_NATIVE_LAB="$(CURDIR)/$(TARGET)" python3 -m unittest discover -s tests -v
 
-app: macos/main.swift macos/Info.plist
+app: macos/main.swift macos/Info.plist macos/Locks.c macos/Bridge.h
 	mkdir -p "$(APP)/Contents/MacOS"
-	xcrun swiftc -swift-version 5 -O -target arm64-apple-macosx13.0 macos/main.swift -o "$(LAUNCHER)" -framework AppKit -framework CryptoKit
+	xcrun clang -arch arm64 -mmacosx-version-min=13.0 -Wall -Wextra -Werror -c macos/Locks.c -o .build/locks.o
+	xcrun swiftc -swift-version 5 -O -target arm64-apple-macosx13.0 -import-objc-header macos/Bridge.h macos/main.swift .build/locks.o -o "$(LAUNCHER)" -framework AppKit -framework CryptoKit
 	cp macos/Info.plist "$(APP)/Contents/Info.plist"
 	mkdir -p "$(APP)/Contents/Resources"
 	cp LICENSE THIRD_PARTY.md "$(APP)/Contents/Resources/"

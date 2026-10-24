@@ -1,5 +1,6 @@
 import AppKit
 import CryptoKit
+import Darwin
 import Foundation
 
 // This application starts Valve's Steam client. It never starts or patches cs2.exe.
@@ -53,7 +54,7 @@ struct Diagnosis: Codable {
     let execution: String
     let readyToOpenSteam: Bool
     let gameInstalled: Bool
-    let officialOnlineVerified: Bool
+    let liveOnlineSessionChecked: Bool
     let checks: [Check]
 }
 
@@ -63,6 +64,15 @@ struct Launch: Codable {
     let arguments: [String]
     let environment: [String: String]
     let launchesGameDirectly: Bool
+}
+
+struct BootstrapState: Codable {
+    let phase: String
+    let updateReceiptTime: Double?
+}
+
+struct BootstrapRecovery: Codable {
+    var handledReceipts: [Int64] = []
 }
 
 func json<T: Encodable>(_ value: T) throws -> String {
@@ -158,9 +168,20 @@ final class Controller {
     }
 
     func save(_ selection: Selection) throws {
+        try withMutationLock {
+            try Data(json(selection).utf8).write(to: configURL, options: .atomic)
+            try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: configURL.path)
+        }
+    }
+
+    private func withMutationLock<T>(_ operation: () throws -> T) throws -> T {
         try fm.createDirectory(at: root, withIntermediateDirectories: true)
-        try Data(json(selection).utf8).write(to: configURL, options: .atomic)
-        try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: configURL.path)
+        let fd = Darwin.open(root.appendingPathComponent("control.lock").path, O_CREAT | O_RDWR | O_CLOEXEC, mode_t(0o600))
+        guard fd >= 0 else { throw Failure("No pude bloquear el control del entorno.") }
+        defer { Darwin.close(fd) }
+        guard cs2mac_flock(fd, LOCK_EX) == 0 else { throw Failure("No pude obtener el control del entorno.") }
+        defer { cs2mac_flock(fd, LOCK_UN) }
+        return try operation()
     }
 
     func bottleRoot(_ selected: Selection) -> URL {
@@ -238,7 +259,7 @@ final class Controller {
         }
         let ready = !checks.contains { $0.status == "error" }
         return Diagnosis(version: appVersion, backend: selected.backend, execution: "Original Windows x86_64 game through compatibility and Rosetta", readyToOpenSteam: ready,
-                         gameInstalled: gameInstalled, officialOnlineVerified: false, checks: checks)
+                         gameInstalled: gameInstalled, liveOnlineSessionChecked: false, checks: checks)
     }
 
     func environment(_ selected: Selection) -> [String: String] {
@@ -255,8 +276,8 @@ final class Controller {
         return env
     }
 
-    func launchPlan(play: Bool = false, shutdown: Bool = false) throws -> Launch {
-        let selected = try selection()
+    func launchPlan(play: Bool = false, shutdown: Bool = false, fixedSelection: Selection? = nil) throws -> Launch {
+        let selected = try fixedSelection ?? selection()
         var args: [String] = []
         if selected.backend == "crossover" { args += ["--bottle", selected.bottle!, "--no-wait", "--cx-app"] }
         // CrossOver's --cx-app takes a Windows path; native absolute paths are not converted here.
@@ -294,20 +315,89 @@ final class Controller {
     }
 
     func openSteam(play: Bool = false) throws {
-        let diagnosis = try diagnose()
-        guard diagnosis.readyToOpenSteam else {
-            throw Failure(diagnosis.checks.filter { $0.status == "error" }.map(\.message).joined(separator: "\n"))
+        try withMutationLock {
+            let selected = try selection()
+            let diagnosis = try diagnose()
+            guard diagnosis.readyToOpenSteam else {
+                throw Failure(diagnosis.checks.filter { $0.status == "error" }.map(\.message).joined(separator: "\n"))
+            }
+            try recoverInitialBootstrapIfNeeded(selected)
+            let plan = try launchPlan(play: play, fixedSelection: selected)
+            try spawn(URL(fileURLWithPath: plan.executable), plan.arguments, selected: selected)
         }
-        let plan = try launchPlan(play: play)
-        try spawn(URL(fileURLWithPath: plan.executable), plan.arguments, selected: selection())
+    }
+
+    // First-time Steam installs can finish win32/win64 updates without completing
+    // the Wine process handoff. Never reset a prefix that has reached the frontend.
+    func bootstrapState(now: Date = Date()) -> BootstrapState {
+        let logs = steam(Selection()).deletingLastPathComponent().appendingPathComponent("logs")
+        if regularFile(logs.appendingPathComponent("steamui_system.txt")) {
+            return BootstrapState(phase: "frontend-started", updateReceiptTime: nil)
+        }
+        let bootstrap = logs.appendingPathComponent("bootstrap_log.txt")
+        let package = steam(Selection()).deletingLastPathComponent().appendingPathComponent("package")
+        let receipts = ["steam_client_win32.installed", "steam_client_win64.installed"].compactMap { name -> Date? in
+            try? package.appendingPathComponent(name).resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
+        }
+        guard let receiptTime = receipts.max(),
+              let logTime = try? bootstrap.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate,
+              let handle = try? FileHandle(forReadingFrom: bootstrap) else {
+            return BootstrapState(phase: "waiting", updateReceiptTime: nil)
+        }
+        defer { try? handle.close() }
+        guard let end = try? handle.seekToEnd(),
+              (try? handle.seek(toOffset: end > 16384 ? end - 16384 : 0)) != nil,
+              let tail = try? handle.readToEnd() else { return BootstrapState(phase: "waiting", updateReceiptTime: nil) }
+        let text = String(decoding: tail, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        let complete = text.hasSuffix("] Shutdown") && abs(logTime.timeIntervalSince(receiptTime)) < 60
+        let settled = now.timeIntervalSince(logTime) >= 20
+        guard complete && settled else { return BootstrapState(phase: "waiting", updateReceiptTime: nil) }
+        let receipt = receiptTime.timeIntervalSince1970
+        guard let recovery = try? recoveryRecord() else { return BootstrapState(phase: "recovery-blocked", updateReceiptTime: receipt) }
+        let phase: String
+        if recovery.handledReceipts.contains(Int64(receipt)) { phase = "already-recovered" }
+        else if recovery.handledReceipts.count >= 2 { phase = "recovery-limit" }
+        else { phase = "restart-required" }
+        return BootstrapState(phase: phase, updateReceiptTime: receipt)
+    }
+
+    private func recoveryRecord() throws -> BootstrapRecovery {
+        let path = root.appendingPathComponent("bootstrap-recovery.json")
+        guard fm.fileExists(atPath: path.path) else { return BootstrapRecovery() }
+        guard let size = try fm.attributesOfItem(atPath: path.path)[.size] as? NSNumber, size.intValue <= 4096 else {
+            throw Failure("El registro de recuperación inicial es inválido.")
+        }
+        return try JSONDecoder().decode(BootstrapRecovery.self, from: Data(contentsOf: path))
+    }
+
+    // Called only inside the cross-process control lock, on an explicit open/play request.
+    // No timers remain behind the user's back, and each completed receipt is handled once.
+    private func recoverInitialBootstrapIfNeeded(_ selected: Selection) throws {
+        guard selected.backend == "managed" else { return }
+        let state = bootstrapState()
+        guard state.phase == "restart-required", let receipt = state.updateReceiptTime else { return }
+        let processes = try command("/bin/ps", ["-axo", "comm="])
+        let currentState = bootstrapState()
+        guard !processes.lowercased().split(separator: "\n").contains(where: { $0.hasSuffix("cs2.exe") }),
+              currentState.phase == "restart-required", currentState.updateReceiptTime == receipt else { return }
+        var recovery = try recoveryRecord()
+        guard recovery.handledReceipts.count < 2, !recovery.handledReceipts.contains(Int64(receipt)) else { return }
+        recovery.handledReceipts.append(Int64(receipt))
+        let recordURL = root.appendingPathComponent("bootstrap-recovery.json")
+        try Data(json(recovery).utf8).write(to: recordURL, options: .atomic)
+        try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: recordURL.path)
+        log("Retomando Steam después de su actualización inicial (\(recovery.handledReceipts.count)/2)…")
+        try command(runtime.appendingPathComponent("bin/wineserver").path, ["-k"], environment: environment(selected))
     }
 
     func stop() throws {
-        guard rosettaWorks() else { throw Failure("Rosetta no está disponible; no hay un entorno que pueda cerrar.") }
-        let selected = try selection()
-        let plan = try launchPlan(shutdown: true)
-        try spawn(URL(fileURLWithPath: plan.executable), plan.arguments, selected: selected,
-                  message: "Solicité el cierre normal de Steam y sus juegos en el entorno seleccionado.")
+        try withMutationLock {
+            guard rosettaWorks() else { throw Failure("Rosetta no está disponible; no hay un entorno que pueda cerrar.") }
+            let selected = try selection()
+            let plan = try launchPlan(shutdown: true, fixedSelection: selected)
+            try spawn(URL(fileURLWithPath: plan.executable), plan.arguments, selected: selected,
+                      message: "Solicité el cierre normal de Steam y sus juegos en el entorno seleccionado.")
+        }
     }
 
     func download(_ asset: Asset) throws -> URL {
@@ -385,7 +475,7 @@ final class Controller {
             }
         }
         try save(managed)
-        if regularFile(steam(managed)) { log("Steam ya está instalado."); return }
+        if regularFile(steam(managed)) { log("Steam ya está instalado. Pulsá Abrir Steam."); return }
         log("Descargando el instalador oficial de Steam…")
         let installer = cache.appendingPathComponent("SteamSetup.exe")
         // Steam's bootstrap installer updates independently; HTTPS origin is retained, not a false fixed digest.
@@ -585,6 +675,7 @@ func main() throws {
         print("""
         cs2mac \(appVersion) — el CS2 original mediante compatibilidad en Apple Silicon
           doctor [--json]             Comprobar requisitos sin instalar ni abrir Steam
+          bootstrap-status            Estado de la primera actualización de Steam (solo lectura)
           fetch-runtime               Descargar y verificar Wine/DXMT (no los ejecuta)
           setup                       Preparar entorno y abrir el instalador oficial de Steam
           use-crossover --bottle NAME [--app /Applications/CrossOver.app]
@@ -602,6 +693,7 @@ func main() throws {
         else { for check in report.checks { print("[\(check.status)] \(check.message)") } }
         if !report.readyToOpenSteam { exit(1) }
     case "fetch-runtime": guard args.count == 1 else { throw Failure("Uso: fetch-runtime") }; try controller.fetchRuntime()
+    case "bootstrap-status": guard args.count == 1 else { throw Failure("Uso: bootstrap-status") }; print(try json(controller.bootstrapState()))
     case "setup": guard args.count == 1 else { throw Failure("Uso: setup") }; try controller.setup()
     case "use-managed": guard args.count == 1 else { throw Failure("Uso: use-managed") }; try controller.save(Selection())
     case "use-crossover":
