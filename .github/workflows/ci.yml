@@ -20,5 +20,5 @@ jobs:
         run: make check
       - name: Verify native launcher architecture and signature
         run: |
-          lipo -verify_arch arm64 '.build/CS2 en Mac.app/Contents/MacOS/cs2mac'
+          lipo '.build/CS2 en Mac.app/Contents/MacOS/cs2mac' -verify_arch arm64
           codesign --verify --strict '.build/CS2 en Mac.app'
